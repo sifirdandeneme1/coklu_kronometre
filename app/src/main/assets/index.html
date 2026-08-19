@@ -4,155 +4,276 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çoklu Kronometre</title>
+    <!-- Retro dijital saat fontu -->
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: #121826; color: #f3f4f6; min-height: 100vh; padding: 15px; }
-        header { text-align: center; margin-bottom: 15px; }
-        h1 { font-size: 1.4rem; color: #38bdf8; font-weight: 700; margin-bottom: 10px; }
+        body { background-color: #0f1115; color: #f3f4f6; min-height: 100vh; padding: 20px 15px; }
+        
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.4rem; color: #e2e8f0; font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; }
+        
         .add-btn {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            color: white; border: none; padding: 12px 20px; border-radius: 10px;
+            background: #2563eb; color: white; border: none; padding: 14px 20px; border-radius: 12px;
             font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); transition: transform 0.1s;
         }
-        .add-btn:active { transform: scale(0.98); }
-        .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+        .add-btn:active { transform: scale(0.97); }
+
+        /* Üst Sekmeler */
+        .tabs {
+            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px; scrollbar-width: none;
+        }
         .tabs::-webkit-scrollbar { display: none; }
         .tab {
-            background: #1e293b; color: #94a3b8; border: 1px solid #334155;
-            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem;
-            white-space: nowrap; cursor: pointer; transition: all 0.2s;
+            background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 10px 18px; 
+            border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; transition: all 0.2s;
         }
-        .tab.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
-        .timer-card {
-            background: #1e293b; border: 1px solid #334155; border-radius: 16px;
-            padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .tab.active { background: #e2e8f0; color: #0f1115; font-weight: bold; border-color: #e2e8f0; }
+
+        /* Boş Liste Ekranı */
+        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; font-size: 1rem; line-height: 1.5; }
+
+        /* Fiziksel Kronometre Kasa Tasarımı (Görseldeki gibi) */
+        .timer-hardware {
+            background: #1e1e1e; border: 12px solid #0a0a0a; border-radius: 24px;
+            padding: 20px 15px; margin-bottom: 25px; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.6);
         }
-        .timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .timer-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; }
-        .delete-btn { background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; }
+        
+        .timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
+        .timer-title { font-size: 1.1rem; font-weight: 600; color: #d1d5db; letter-spacing: 0.5px; }
+        .delete-btn { 
+            background: #ef4444; color: white; border: none; width: 26px; height: 26px; 
+            border-radius: 50%; font-size: 0.9rem; cursor: pointer; line-height: 1; 
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* LCD Ekran Görünümü */
+        .lcd-screen {
+            background: #a8b29e; /* Vintage gri/yeşil LCD rengi */
+            border-radius: 8px; padding: 25px 10px; margin-bottom: 20px;
+            box-shadow: inset 3px 3px 8px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.2);
+            border: 2px solid #6b7264; display: flex; justify-content: center; align-items: center;
+        }
+        
         .time-display {
-            font-family: monospace; font-size: 2.2rem; text-align: center;
-            color: #38bdf8; font-weight: bold; margin: 12px 0; letter-spacing: 2px;
+            font-family: 'Share Tech Mono', monospace; font-size: 3.6rem; 
+            color: #1a1c18; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); letter-spacing: 2px;
         }
-        .controls { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; color: white; }
-        .btn-start { background: #10b981; }
-        .btn-pause { background: #f59e0b; }
-        .btn-reset { background: #64748b; }
+
+        /* Fiziksel Tuşlar */
+        .hardware-controls { display: flex; justify-content: space-around; gap: 15px; padding: 0 5px; }
+        .hw-btn {
+            background: #111; color: #d1d5db; border: none; padding: 14px 10px; 
+            border-radius: 25px; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px;
+            box-shadow: 0 5px 0 #000, 0 8px 10px rgba(0,0,0,0.4); 
+            cursor: pointer; flex: 1; transition: all 0.1s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .hw-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #000, 0 2px 5px rgba(0,0,0,0.4); }
+        
+        /* Çalışıyor Göstergesi (Kırmızı Işık) */
+        .indicator { width: 6px; height: 6px; border-radius: 50%; background: #333; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+        .is-running .indicator { background: #ff4757; box-shadow: 0 0 6px #ff4757; }
+
+        /* Yeni Ekle Modalı */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); justify-content: center; align-items: center; padding: 20px;
+            background: rgba(0,0,0,0.8); justify-content: center; align-items: center; padding: 20px; z-index: 100;
         }
-        .modal-content { background: #1e293b; padding: 20px; border-radius: 14px; width: 100%; max-width: 350px; }
-        .modal-title { font-size: 1.1rem; margin-bottom: 12px; color: #f8fafc; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 350px; }
+        .modal-title { font-size: 1.2rem; margin-bottom: 15px; color: #f8fafc; font-weight: 600; }
         .modal-input {
-            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569;
-            background: #0f172a; color: white; margin-bottom: 15px; font-size: 1rem;
+            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #475569;
+            background: #0f1115; color: white; margin-bottom: 20px; font-size: 1rem;
         }
         .modal-actions { display: flex; gap: 10px; }
+        .btn-modal { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; color: white; }
+        .btn-modal-create { background: #2563eb; }
+        .btn-modal-cancel { background: #475569; }
     </style>
 </head>
 <body>
+
     <header>
         <h1>⏱️ Çoklu Kronometre</h1>
         <button class="add-btn" onclick="openModal()">+ Yeni Kronometre Ekle</button>
     </header>
-    <div class="tabs" id="tabsContainer">
-        <div class="tab active" onclick="filterTab('all')">Tüm Liste</div>
-    </div>
+
+    <div class="tabs" id="tabsContainer"></div>
     <div id="timersContainer"></div>
+
+    <!-- Yeni Ekleme Penceresi -->
     <div class="modal" id="addModal">
         <div class="modal-content">
             <div class="modal-title">Kronometre Adı</div>
-            <input type="text" id="timerNameInput" class="modal-input" placeholder="Örn: Çay Demleme, Spor..." maxlength="25">
+            <input type="text" id="timerNameInput" class="modal-input" placeholder="Örn: Çay, Spor, Çarşı..." maxlength="25">
             <div class="modal-actions">
-                <button class="btn btn-reset" onclick="closeModal()">İptal</button>
-                <button class="btn btn-start" onclick="createTimer()">Oluştur</button>
+                <button class="btn-modal btn-modal-cancel" onclick="closeModal()">İptal</button>
+                <button class="btn-modal btn-modal-create" onclick="createTimer()">Oluştur</button>
             </div>
         </div>
     </div>
+
     <script>
-        let timers = JSON.parse(localStorage.getItem('my_stopwatches')) || [
-            { id: 1, title: 'Çay Demleme', elapsedTime: 0, startTime: null, isRunning: false },
-            { id: 2, title: 'Spor', elapsedTime: 0, startTime: null, isRunning: false }
-        ];
+        // İLK KURULUMDA BOŞ LİSTE GELSİN (İstediğin gibi)
+        let timers = JSON.parse(localStorage.getItem('my_stopwatches')) || [];
         let activeTab = 'all';
 
-        function saveTimers() { localStorage.setItem('my_stopwatches', JSON.stringify(timers)); }
+        function saveTimers() {
+            localStorage.setItem('my_stopwatches', JSON.stringify(timers));
+        }
+
         function formatTime(ms) {
             let totalSecs = Math.floor(ms / 1000);
             let hours = Math.floor(totalSecs / 3600);
             let mins = Math.floor((totalSecs % 3600) / 60);
             let secs = totalSecs % 60;
-            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            // Eğer saat sıfırsa sadece dk:sn göster, saat varsa saati de ekle
+            if (hours > 0) {
+                return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            } else {
+                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
         }
+
         function getCurrentElapsedTime(timer) {
-            return timer.isRunning ? timer.elapsedTime + (Date.now() - timer.startTime) : timer.elapsedTime;
+            if (timer.isRunning) {
+                return timer.elapsedTime + (Date.now() - timer.startTime);
+            }
+            return timer.elapsedTime;
         }
+
         function renderTabs() {
             const container = document.getElementById('tabsContainer');
+            if (timers.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
             let html = `<div class="tab ${activeTab === 'all' ? 'active' : ''}" onclick="filterTab('all')">Tüm Liste</div>`;
             timers.forEach(t => {
                 html += `<div class="tab ${activeTab === t.id ? 'active' : ''}" onclick="filterTab(${t.id})">${t.title}</div>`;
             });
             container.innerHTML = html;
         }
-        function filterTab(tabId) { activeTab = tabId; renderTabs(); renderTimers(); }
+
+        function filterTab(tabId) {
+            activeTab = tabId;
+            renderTabs();
+            renderTimers();
+        }
+
         function renderTimers() {
             const container = document.getElementById('timersContainer');
             container.innerHTML = '';
+
+            if (timers.length === 0) {
+                container.innerHTML = `<div class="empty-state">Henüz eklenmiş bir görev yok.<br><br>Yukarıdaki butona tıklayarak ilk zamanlayıcını oluştur.</div>`;
+                return;
+            }
+
             const listToRender = activeTab === 'all' ? timers : timers.filter(t => t.id === activeTab);
+
             listToRender.forEach(timer => {
                 const currentMs = getCurrentElapsedTime(timer);
+                const isRunningClass = timer.isRunning ? 'is-running' : '';
+                
                 const card = document.createElement('div');
-                card.className = 'timer-card';
+                card.className = `timer-hardware ${isRunningClass}`;
+                card.id = `hardware-${timer.id}`;
+                
                 card.innerHTML = `
                     <div class="timer-header">
                         <span class="timer-title">${timer.title}</span>
                         <button class="delete-btn" onclick="deleteTimer(${timer.id})">✕</button>
                     </div>
-                    <div class="time-display" id="display-${timer.id}">${formatTime(currentMs)}</div>
-                    <div class="controls">
-                        ${timer.isRunning 
-                            ? `<button class="btn btn-pause" onclick="pauseTimer(${timer.id})">Durdur</button>`
-                            : `<button class="btn btn-start" onclick="startTimer(${timer.id})">Başlat</button>`
-                        }
-                        <button class="btn btn-reset" onclick="resetTimer(${timer.id})">Sıfırla</button>
+                    
+                    <div class="lcd-screen">
+                        <div class="time-display" id="display-${timer.id}">${formatTime(currentMs)}</div>
+                    </div>
+                    
+                    <div class="hardware-controls">
+                        <button class="hw-btn" onclick="toggleTimer(${timer.id})">
+                            <div class="indicator"></div>
+                            START/STOP
+                        </button>
+                        <button class="hw-btn" onclick="resetTimer(${timer.id})">
+                            <div style="height: 6px;"></div>
+                            RES
+                        </button>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
-        function startTimer(id) {
+
+        // Başlat/Durdur (Tek Tuşla)
+        function toggleTimer(id) {
             const t = timers.find(x => x.id === id);
-            if (t && !t.isRunning) { t.isRunning = true; t.startTime = Date.now(); saveTimers(); renderTimers(); }
-        }
-        function pauseTimer(id) {
-            const t = timers.find(x => x.id === id);
-            if (t && t.isRunning) { t.elapsedTime += (Date.now() - t.startTime); t.isRunning = false; t.startTime = null; saveTimers(); renderTimers(); }
-        }
-        function resetTimer(id) {
-            const t = timers.find(x => x.id === id);
-            if (t) { t.elapsedTime = 0; if (t.isRunning) t.startTime = Date.now(); saveTimers(); renderTimers(); }
-        }
-        function deleteTimer(id) {
-            if (confirm('Bu kronometreyi silmek istediğine emin misin?')) {
-                timers = timers.filter(x => x.id !== id);
-                if (activeTab === id) activeTab = 'all';
-                saveTimers(); renderTabs(); renderTimers();
+            if (t) {
+                if (!t.isRunning) {
+                    t.isRunning = true;
+                    t.startTime = Date.now();
+                } else {
+                    t.elapsedTime += (Date.now() - t.startTime);
+                    t.isRunning = false;
+                    t.startTime = null;
+                }
+                saveTimers();
+                renderTimers();
             }
         }
+
+        function resetTimer(id) {
+            const t = timers.find(x => x.id === id);
+            if (t) {
+                t.elapsedTime = 0;
+                if (t.isRunning) t.startTime = Date.now();
+                saveTimers();
+                renderTimers();
+            }
+        }
+
+        function deleteTimer(id) {
+            if (confirm('Bu kronometreyi listeden kaldırmak istediğine emin misin?')) {
+                timers = timers.filter(x => x.id !== id);
+                if (activeTab === id) activeTab = 'all';
+                saveTimers();
+                renderTabs();
+                renderTimers();
+            }
+        }
+
         function openModal() { document.getElementById('addModal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('addModal').style.display = 'none'; document.getElementById('timerNameInput').value = ''; }
+        
+        function closeModal() { 
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('timerNameInput').value = '';
+        }
+
         function createTimer() {
             const input = document.getElementById('timerNameInput');
             const name = input.value.trim();
             if (name) {
-                timers.push({ id: Date.now(), title: name, elapsedTime: 0, startTime: null, isRunning: false });
-                saveTimers(); renderTabs(); renderTimers(); closeModal();
+                const newTimer = {
+                    id: Date.now(),
+                    title: name,
+                    elapsedTime: 0,
+                    startTime: null,
+                    isRunning: false
+                };
+                timers.push(newTimer);
+                saveTimers();
+                renderTabs();
+                renderTimers();
+                closeModal();
             }
         }
+
+        // Saniyede 10 kere LCD ekranı günceller
         setInterval(() => {
             timers.forEach(t => {
                 if (t.isRunning) {
@@ -161,7 +282,9 @@
                 }
             });
         }, 100);
-        renderTabs(); renderTimers();
+
+        renderTabs();
+        renderTimers();
     </script>
 </body>
 </html>
