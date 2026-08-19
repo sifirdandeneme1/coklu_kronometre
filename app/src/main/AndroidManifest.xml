@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/manifest"
-    package="com.omer.coklukronometre">
+<manifest xmlns:android="http://schemas.android.com/apk/manifest">
 
     <application
         android:allowBackup="true"
@@ -8,7 +7,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
-            android:name=".MainActivity"
+            android:name="com.omer.coklukronometre.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
@@ -17,4 +16,5 @@
             </intent-filter>
         </activity>
     </application>
+
 </manifest>
