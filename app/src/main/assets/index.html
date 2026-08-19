@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çoklu Kronometre</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: #121826; color: #f3f4f6; min-height: 100vh; padding: 15px; }
+        header { text-align: center; margin-bottom: 15px; }
+        h1 { font-size: 1.4rem; color: #38bdf8; font-weight: 700; margin-bottom: 10px; }
+        .add-btn {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white; border: none; padding: 12px 20px; border-radius: 10px;
+            font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        .add-btn:active { transform: scale(0.98); }
+        .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem;
+            white-space: nowrap; cursor: pointer; transition: all 0.2s;
+        }
+        .tab.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
+        .timer-card {
+            background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+            padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .timer-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; }
+        .delete-btn { background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; }
+        .time-display {
+            font-family: monospace; font-size: 2.2rem; text-align: center;
+            color: #38bdf8; font-weight: bold; margin: 12px 0; letter-spacing: 2px;
+        }
+        .controls { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; color: white; }
+        .btn-start { background: #10b981; }
+        .btn-pause { background: #f59e0b; }
+        .btn-reset { background: #64748b; }
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-content { background: #1e293b; padding: 20px; border-radius: 14px; width: 100%; max-width: 350px; }
+        .modal-title { font-size: 1.1rem; margin-bottom: 12px; color: #f8fafc; }
+        .modal-input {
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569;
+            background: #0f172a; color: white; margin-bottom: 15px; font-size: 1rem;
+        }
+        .modal-actions { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⏱️ Çoklu Kronometre</h1>
+        <button class="add-btn" onclick="openModal()">+ Yeni Kronometre Ekle</button>
+    </header>
+    <div class="tabs" id="tabsContainer">
+        <div class="tab active" onclick="filterTab('all')">Tüm Liste</div>
+    </div>
+    <div id="timersContainer"></div>
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-title">Kronometre Adı</div>
+            <input type="text" id="timerNameInput" class="modal-input" placeholder="Örn: Çay Demleme, Spor..." maxlength="25">
+            <div class="modal-actions">
+                <button class="btn btn-reset" onclick="closeModal()">İptal</button>
+                <button class="btn btn-start" onclick="createTimer()">Oluştur</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let timers = JSON.parse(localStorage.getItem('my_stopwatches')) || [
+            { id: 1, title: 'Çay Demleme', elapsedTime: 0, startTime: null, isRunning: false },
+            { id: 2, title: 'Spor', elapsedTime: 0, startTime: null, isRunning: false }
+        ];
+        let activeTab = 'all';
+
+        function saveTimers() { localStorage.setItem('my_stopwatches', JSON.stringify(timers)); }
+        function formatTime(ms) {
+            let totalSecs = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSecs / 3600);
+            let mins = Math.floor((totalSecs % 3600) / 60);
+            let secs = totalSecs % 60;
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        function getCurrentElapsedTime(timer) {
+            return timer.isRunning ? timer.elapsedTime + (Date.now() - timer.startTime) : timer.elapsedTime;
+        }
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            let html = `<div class="tab ${activeTab === 'all' ? 'active' : ''}" onclick="filterTab('all')">Tüm Liste</div>`;
+            timers.forEach(t => {
+                html += `<div class="tab ${activeTab === t.id ? 'active' : ''}" onclick="filterTab(${t.id})">${t.title}</div>`;
+            });
+            container.innerHTML = html;
+        }
+        function filterTab(tabId) { activeTab = tabId; renderTabs(); renderTimers(); }
+        function renderTimers() {
+            const container = document.getElementById('timersContainer');
+            container.innerHTML = '';
+            const listToRender = activeTab === 'all' ? timers : timers.filter(t => t.id === activeTab);
+            listToRender.forEach(timer => {
+                const currentMs = getCurrentElapsedTime(timer);
+                const card = document.createElement('div');
+                card.className = 'timer-card';
+                card.innerHTML = `
+                    <div class="timer-header">
+                        <span class="timer-title">${timer.title}</span>
+                        <button class="delete-btn" onclick="deleteTimer(${timer.id})">✕</button>
+                    </div>
+                    <div class="time-display" id="display-${timer.id}">${formatTime(currentMs)}</div>
+                    <div class="controls">
+                        ${timer.isRunning 
+                            ? `<button class="btn btn-pause" onclick="pauseTimer(${timer.id})">Durdur</button>`
+                            : `<button class="btn btn-start" onclick="startTimer(${timer.id})">Başlat</button>`
+                        }
+                        <button class="btn btn-reset" onclick="resetTimer(${timer.id})">Sıfırla</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        function startTimer(id) {
+            const t = timers.find(x => x.id === id);
+            if (t && !t.isRunning) { t.isRunning = true; t.startTime = Date.now(); saveTimers(); renderTimers(); }
+        }
+        function pauseTimer(id) {
+            const t = timers.find(x => x.id === id);
+            if (t && t.isRunning) { t.elapsedTime += (Date.now() - t.startTime); t.isRunning = false; t.startTime = null; saveTimers(); renderTimers(); }
+        }
+        function resetTimer(id) {
+            const t = timers.find(x => x.id === id);
+            if (t) { t.elapsedTime = 0; if (t.isRunning) t.startTime = Date.now(); saveTimers(); renderTimers(); }
+        }
+        function deleteTimer(id) {
+            if (confirm('Bu kronometreyi silmek istediğine emin misin?')) {
+                timers = timers.filter(x => x.id !== id);
+                if (activeTab === id) activeTab = 'all';
+                saveTimers(); renderTabs(); renderTimers();
+            }
+        }
+        function openModal() { document.getElementById('addModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('addModal').style.display = 'none'; document.getElementById('timerNameInput').value = ''; }
+        function createTimer() {
+            const input = document.getElementById('timerNameInput');
+            const name = input.value.trim();
+            if (name) {
+                timers.push({ id: Date.now(), title: name, elapsedTime: 0, startTime: null, isRunning: false });
+                saveTimers(); renderTabs(); renderTimers(); closeModal();
+            }
+        }
+        setInterval(() => {
+            timers.forEach(t => {
+                if (t.isRunning) {
+                    const el = document.getElementById(`display-${t.id}`);
+                    if (el) el.innerText = formatTime(getCurrentElapsedTime(t));
+                }
+            });
+        }, 100);
+        renderTabs(); renderTimers();
+    </script>
+</body>
+</html>
