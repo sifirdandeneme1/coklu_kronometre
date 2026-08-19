@@ -3,7 +3,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="Çoklu Kronometre"
+        android:label="Kronometre"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
