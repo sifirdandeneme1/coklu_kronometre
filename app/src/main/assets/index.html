@@ -10,8 +10,15 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: #0f1115; color: #f3f4f6; min-height: 100vh; padding: 20px 15px; }
         
-        header { text-align: center; margin-bottom: 20px; }
+        header { text-align: center; margin-bottom: 20px; position: relative; }
         h1 { font-size: 1.4rem; color: #e2e8f0; font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; }
+
+        .sound-toggle {
+            position: absolute; top: 0; right: 0; background: #1e293b; border: 1px solid #334155;
+            color: #e2e8f0; width: 38px; height: 38px; border-radius: 50%; font-size: 1.1rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .sound-toggle.muted { color: #64748b; }
         
         .add-btn {
             background: #2563eb; color: white; border: none; padding: 14px 20px; border-radius: 12px;
@@ -58,7 +65,6 @@
             color: #1a1c18; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); letter-spacing: 2px;
         }
 
-        /* Fiziksel Tuşlar */
         .hardware-controls { display: flex; justify-content: space-around; gap: 12px; padding: 0 5px; }
         .hw-btn {
             color: #fff; border: none; padding: 16px 10px; 
@@ -67,7 +73,6 @@
         }
         .hw-btn .icon { font-size: 1.3rem; line-height: 1; }
 
-        /* Ana buton: BAŞLAT/DURDUR - daha büyük, durum renkli */
         .btn-main {
             flex: 2;
             box-shadow: 0 5px 0 #000, 0 8px 12px rgba(0,0,0,0.4);
@@ -78,7 +83,6 @@
         .btn-stop { background: #dc2626; box-shadow: 0 5px 0 #7f1d1d, 0 8px 12px rgba(220,38,38,0.4); }
         .btn-stop:active { box-shadow: 0 0 0 #7f1d1d, 0 2px 5px rgba(220,38,38,0.4); }
 
-        /* İkincil buton: SIFIRLA - daha küçük, nötr */
         .btn-secondary {
             flex: 1;
             background: #2a2a2a; color: #9ca3af;
@@ -108,6 +112,7 @@
 <body>
 
     <header>
+        <button class="sound-toggle" id="soundToggleBtn" onclick="toggleSound()">🔊</button>
         <h1>⏱️ Kronometre</h1>
         <button class="add-btn" onclick="openModal()">+ Yeni Kronometre Ekle</button>
     </header>
@@ -129,9 +134,51 @@
     <script>
         let timers = JSON.parse(localStorage.getItem('my_stopwatches')) || [];
         let activeTab = 'all';
+        let soundEnabled = localStorage.getItem('sound_enabled') !== 'false';
+        let audioCtx = null;
 
         function saveTimers() {
             localStorage.setItem('my_stopwatches', JSON.stringify(timers));
+        }
+
+        function getAudioCtx() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playTick() {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1800, ctx.currentTime);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.05);
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('sound_enabled', soundEnabled);
+            updateSoundIcon();
+            if (soundEnabled) getAudioCtx();
+        }
+
+        function updateSoundIcon() {
+            const btn = document.getElementById('soundToggleBtn');
+            btn.textContent = soundEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('muted', !soundEnabled);
         }
 
         function formatTime(ms) {
@@ -225,9 +272,11 @@
         function toggleTimer(id) {
             const t = timers.find(x => x.id === id);
             if (t) {
+                getAudioCtx();
                 if (!t.isRunning) {
                     t.isRunning = true;
                     t.startTime = Date.now();
+                    t.lastTickSecond = Math.floor(getCurrentElapsedTime(t) / 1000);
                 } else {
                     t.elapsedTime += (Date.now() - t.startTime);
                     t.isRunning = false;
@@ -242,7 +291,10 @@
             const t = timers.find(x => x.id === id);
             if (t) {
                 t.elapsedTime = 0;
-                if (t.isRunning) t.startTime = Date.now();
+                if (t.isRunning) {
+                    t.startTime = Date.now();
+                    t.lastTickSecond = 0;
+                }
                 saveTimers();
                 renderTimers();
             }
@@ -274,7 +326,8 @@
                     title: name,
                     elapsedTime: 0,
                     startTime: null,
-                    isRunning: false
+                    isRunning: false,
+                    lastTickSecond: 0
                 };
                 timers.push(newTimer);
                 saveTimers();
@@ -287,14 +340,22 @@
         function updateLoop() {
             timers.forEach(t => {
                 if (t.isRunning) {
+                    const currentMs = getCurrentElapsedTime(t);
                     const el = document.getElementById(`display-${t.id}`);
-                    if (el) el.textContent = formatTime(getCurrentElapsedTime(t));
+                    if (el) el.textContent = formatTime(currentMs);
+
+                    const currentSecond = Math.floor(currentMs / 1000);
+                    if (currentSecond !== t.lastTickSecond) {
+                        t.lastTickSecond = currentSecond;
+                        playTick();
+                    }
                 }
             });
             requestAnimationFrame(updateLoop);
         }
         requestAnimationFrame(updateLoop);
 
+        updateSoundIcon();
         renderTabs();
         renderTimers();
     </script>
