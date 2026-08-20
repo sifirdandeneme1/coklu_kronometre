@@ -131,12 +131,7 @@
             let mins = Math.floor((totalSecs % 3600) / 60);
             let secs = totalSecs % 60;
             
-            // Eğer saat sıfırsa sadece dk:sn göster, saat varsa saati de ekle
-            if (hours > 0) {
-                return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            } else {
-                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            }
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;     
         }
 
         function getCurrentElapsedTime(timer) {
