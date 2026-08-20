@@ -58,14 +58,33 @@
             color: #1a1c18; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); letter-spacing: 2px;
         }
 
-        .hardware-controls { display: flex; justify-content: space-around; gap: 15px; padding: 0 5px; }
+        /* Fiziksel Tuşlar */
+        .hardware-controls { display: flex; justify-content: space-around; gap: 12px; padding: 0 5px; }
         .hw-btn {
-            background: #111; color: #d1d5db; border: none; padding: 14px 10px; 
+            color: #fff; border: none; padding: 16px 10px; 
             border-radius: 25px; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px;
-            box-shadow: 0 5px 0 #000, 0 8px 10px rgba(0,0,0,0.4); 
-            cursor: pointer; flex: 1; transition: all 0.1s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+            cursor: pointer; transition: all 0.1s; display: flex; flex-direction: column; align-items: center; gap: 5px;
         }
-        .hw-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #000, 0 2px 5px rgba(0,0,0,0.4); }
+        .hw-btn .icon { font-size: 1.3rem; line-height: 1; }
+
+        /* Ana buton: BAŞLAT/DURDUR - daha büyük, durum renkli */
+        .btn-main {
+            flex: 2;
+            box-shadow: 0 5px 0 #000, 0 8px 12px rgba(0,0,0,0.4);
+        }
+        .btn-main:active { transform: translateY(5px); box-shadow: 0 0 0 #000, 0 2px 5px rgba(0,0,0,0.4); }
+        .btn-start { background: #16a34a; box-shadow: 0 5px 0 #14532d, 0 8px 12px rgba(22,163,74,0.4); }
+        .btn-start:active { box-shadow: 0 0 0 #14532d, 0 2px 5px rgba(22,163,74,0.4); }
+        .btn-stop { background: #dc2626; box-shadow: 0 5px 0 #7f1d1d, 0 8px 12px rgba(220,38,38,0.4); }
+        .btn-stop:active { box-shadow: 0 0 0 #7f1d1d, 0 2px 5px rgba(220,38,38,0.4); }
+
+        /* İkincil buton: SIFIRLA - daha küçük, nötr */
+        .btn-secondary {
+            flex: 1;
+            background: #2a2a2a; color: #9ca3af;
+            box-shadow: 0 5px 0 #000, 0 8px 10px rgba(0,0,0,0.4);
+        }
+        .btn-secondary:active { transform: translateY(5px); box-shadow: 0 0 0 #000, 0 2px 5px rgba(0,0,0,0.4); }
         
         .indicator { width: 6px; height: 6px; border-radius: 50%; background: #333; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
         .is-running .indicator { background: #ff4757; box-shadow: 0 0 6px #ff4757; }
@@ -170,6 +189,9 @@
             listToRender.forEach(timer => {
                 const currentMs = getCurrentElapsedTime(timer);
                 const isRunningClass = timer.isRunning ? 'is-running' : '';
+                const mainBtnClass = timer.isRunning ? 'btn-stop' : 'btn-start';
+                const mainBtnIcon = timer.isRunning ? '⏸' : '▶';
+                const mainBtnText = timer.isRunning ? 'DURDUR' : 'BAŞLAT';
                 
                 const card = document.createElement('div');
                 card.className = `timer-hardware ${isRunningClass}`;
@@ -186,12 +208,12 @@
                     </div>
                     
                     <div class="hardware-controls">
-                        <button class="hw-btn" onclick="toggleTimer(${timer.id})">
-                            <div class="indicator"></div>
-                            BAŞLAT/DURDUR
+                        <button class="hw-btn btn-main ${mainBtnClass}" onclick="toggleTimer(${timer.id})">
+                            <span class="icon">${mainBtnIcon}</span>
+                            ${mainBtnText}
                         </button>
-                        <button class="hw-btn" onclick="resetTimer(${timer.id})">
-                            <div style="height: 6px;"></div>
+                        <button class="hw-btn btn-secondary" onclick="resetTimer(${timer.id})">
+                            <span class="icon">↺</span>
                             SIFIRLA
                         </button>
                     </div>
