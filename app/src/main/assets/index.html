@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -263,18 +262,19 @@
             }
         }
 
-        setInterval(() => {
+        function updateLoop() {
             timers.forEach(t => {
                 if (t.isRunning) {
                     const el = document.getElementById(`display-${t.id}`);
-                    if (el) el.innerText = formatTime(getCurrentElapsedTime(t));
+                    if (el) el.textContent = formatTime(getCurrentElapsedTime(t));
                 }
             });
-        }, 100);
+            requestAnimationFrame(updateLoop);
+        }
+        requestAnimationFrame(updateLoop);
 
         renderTabs();
         renderTimers();
     </script>
 </body>
 </html>
-```
